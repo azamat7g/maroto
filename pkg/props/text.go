@@ -32,6 +32,10 @@ type Text struct {
 	Color *Color
 	// Hyperlink define a link to be opened when the text is clicked.
 	Hyperlink *string
+	// Rotation rotates the text by the given angle in degrees, counter-
+	// clockwise. The cell automatically expands vertically to contain the
+	// rotated bounding box.
+	Rotation float64
 }
 
 // ToMap converts a Text to a map.
@@ -82,6 +86,10 @@ func (t *Text) ToMap() map[string]any {
 
 	if t.Hyperlink != nil {
 		m["prop_hyperlink"] = *t.Hyperlink
+	}
+
+	if t.Rotation != 0 {
+		m["prop_rotation"] = t.Rotation
 	}
 
 	return m

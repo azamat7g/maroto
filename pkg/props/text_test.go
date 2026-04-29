@@ -203,4 +203,27 @@ func TestText_ToMap(t *testing.T) {
 		// Assert
 		assert.Equal(t, 5.0, m["prop_right"])
 	})
+	t.Run("when rotation is set, should include rotation in map", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := props.Text{Rotation: 45}
+
+		// Act
+		m := prop.ToMap()
+
+		// Assert
+		assert.Equal(t, 45.0, m["prop_rotation"])
+	})
+	t.Run("when rotation is zero, should not include rotation in map", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		prop := props.Text{Rotation: 0}
+
+		// Act
+		m := prop.ToMap()
+
+		// Assert
+		_, ok := m["prop_rotation"]
+		assert.False(t, ok)
+	})
 }

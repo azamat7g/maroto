@@ -71,6 +71,34 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	unicodeText := s.textToUnicode(text, textProp)
 	stringWidth := s.pdf.GetStringWidth(unicodeText)
 
+	// Rotation pivots at the visual center of the rendered text so both signs
+	// of theta — and angles past ±90° — rotate symmetrically around the same
+	// point. The text baseline is shifted to the cell content area's vertical
+	// center so the rotated bounding box stays inside the (Text.GetHeight-
+	// expanded) cell instead of bleeding into adjacent rows.
+	if textProp.Rotation != 0 {
+		marginLeft, marginTop, _, _ := s.pdf.GetMargins()
+		contentHeight := cell.Height - textProp.Top - textProp.Bottom
+		if contentHeight > fontHeight {
+			y = cell.Y + textProp.Top + contentHeight/2 + fontHeight/2
+		}
+		var alignOffsetX float64
+		switch textProp.Align {
+		case align.Center:
+			alignOffsetX = (width - stringWidth) / 2
+		case align.Right:
+			alignOffsetX = width - stringWidth
+		}
+		if alignOffsetX < 0 {
+			alignOffsetX = 0
+		}
+		pivotX := x + alignOffsetX + stringWidth/2 + marginLeft
+		pivotY := y - fontHeight/2 + marginTop
+		s.pdf.TransformBegin()
+		s.pdf.TransformRotate(textProp.Rotation, pivotX, pivotY)
+		defer s.pdf.TransformEnd()
+	}
+
 	// If should add one line
 	if stringWidth <= width {
 		s.addLine(textProp, x, width, y, stringWidth, unicodeText)
@@ -97,6 +125,13 @@ func (s *Text) Add(text string, cell *entity.Cell, textProp *props.Text) {
 	}
 
 	s.font.SetColor(originalColor)
+}
+
+// GetStringWidth returns the rendered width of the text after font selection
+// and unicode translation.
+func (s *Text) GetStringWidth(text string, textProp *props.Text) float64 {
+	s.font.SetFont(textProp.Family, textProp.Style, textProp.Size)
+	return s.pdf.GetStringWidth(s.textToUnicode(text, textProp))
 }
 
 // GetLinesQuantity retrieve the quantity of lines which a text will occupy to avoid that text to extrapolate a cell.

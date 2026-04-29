@@ -452,4 +452,151 @@ func TestText_Add(t *testing.T) {
 		// Act
 		sut.Add("", cell, textProp)
 	})
+	t.Run("when rotation is set to 90, should pivot at the cell content center", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := &entity.Cell{X: 10, Y: 20, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family:   fontfamily.Arial,
+			Style:    fontstyle.Normal,
+			Size:     10,
+			Align:    align.Left,
+			Left:     5,
+			Right:    5,
+			Rotation: 90,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
+		pdf.EXPECT().GetMargins().Return(2.0, 3.0, 0.0, 0.0)
+		// contentHeight = 50 - 0 - 0 = 50 > fontHeight=5 → shift y to cell content center
+		// y = cell.Y + Top + contentHeight/2 + fontHeight/2 = 20 + 0 + 25 + 2.5 = 47.5
+		// x = cell.X + Left = 15
+		// pivotX = x + 0 + stringWidth/2 + marginLeft = 15 + 10 + 2 = 27
+		// pivotY = y - fontHeight/2 + marginTop = 47.5 - 2.5 + 3 = 48
+		pdf.EXPECT().TransformBegin().Once()
+		pdf.EXPECT().TransformRotate(90.0, 27.0, 48.0).Once()
+		pdf.EXPECT().TransformEnd().Once()
+		// Text(x + marginLeft, y + marginTop) = Text(17, 50.5, "hello")
+		pdf.EXPECT().Text(17.0, 50.5, "hello")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("hello", cell, textProp)
+	})
+	t.Run("when rotation is set to -90, should pivot at the cell content center", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := &entity.Cell{X: 10, Y: 20, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family:   fontfamily.Arial,
+			Style:    fontstyle.Normal,
+			Size:     10,
+			Align:    align.Left,
+			Left:     5,
+			Right:    5,
+			Rotation: -90,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
+		pdf.EXPECT().GetMargins().Return(2.0, 3.0, 0.0, 0.0)
+		// Same pivot as +90 — symmetric across rotation sign
+		pdf.EXPECT().TransformBegin().Once()
+		pdf.EXPECT().TransformRotate(-90.0, 27.0, 48.0).Once()
+		pdf.EXPECT().TransformEnd().Once()
+		pdf.EXPECT().Text(17.0, 50.5, "hello")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("hello", cell, textProp)
+	})
+	t.Run("when rotation is set with center align, pivot should account for alignment offset", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family:   fontfamily.Arial,
+			Style:    fontstyle.Normal,
+			Size:     10,
+			Align:    align.Center,
+			Rotation: 45,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		// contentHeight = 50 > fontHeight=5 → y = 0 + 0 + 25 + 2.5 = 27.5
+		// alignOffsetX = (100-20)/2 = 40
+		// pivotX = 0 + 40 + 10 + 0 = 50
+		// pivotY = 27.5 - 2.5 + 0 = 25
+		pdf.EXPECT().TransformBegin().Once()
+		pdf.EXPECT().TransformRotate(45.0, 50.0, 25.0).Once()
+		pdf.EXPECT().TransformEnd().Once()
+		// addLine center: dx = (100-20)/2 = 40, Text(40, 27.5, "hello")
+		pdf.EXPECT().Text(40.0, 27.5, "hello")
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("hello", cell, textProp)
+	})
+	t.Run("when rotation is 0, should not call any Transform method", func(t *testing.T) {
+		t.Parallel()
+		// Arrange
+		cell := &entity.Cell{X: 0, Y: 0, Width: 100, Height: 50}
+		originalColor := &props.Color{Red: 0, Green: 0, Blue: 0}
+		textProp := &props.Text{
+			Family:   fontfamily.Arial,
+			Style:    fontstyle.Normal,
+			Size:     10,
+			Align:    align.Left,
+			Rotation: 0,
+		}
+
+		font := mocks.NewFont(t)
+		font.EXPECT().SetFont(fontfamily.Arial, fontstyle.Normal, 10.0)
+		font.EXPECT().GetHeight(fontfamily.Arial, fontstyle.Normal, 10.0).Return(5.0)
+		font.EXPECT().GetColor().Return(originalColor)
+		font.EXPECT().SetColor(originalColor)
+
+		pdf := mocks.NewFpdf(t)
+		pdf.EXPECT().UnicodeTranslatorFromDescriptor("").Return(func(s string) string { return s })
+		pdf.EXPECT().GetStringWidth("hello").Return(20.0)
+		pdf.EXPECT().GetMargins().Return(0.0, 0.0, 0.0, 0.0)
+		pdf.EXPECT().Text(0.0, 5.0, "hello")
+		// No TransformBegin/Rotate/End expected — mocks.NewFpdf(t) will fail on
+		// any unexpected call.
+
+		sut := gofpdf.NewText(pdf, mocks.NewMath(t), font)
+
+		// Act
+		sut.Add("hello", cell, textProp)
+	})
 }
