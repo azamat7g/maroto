@@ -221,11 +221,15 @@ func (m *Maroto) addRow(r core.Row) {
 		return
 	}
 
+	repeatRows := m.collectRepeatRows()
+
 	// As row will extrapolate page, we will add empty space
 	// on the page to force a new page
 	m.fillPageToAddNew()
 
 	m.addHeader()
+
+	m.addRepeatRows(repeatRows)
 
 	// AddRows row on the new page
 	m.currentHeight += rowHeight
@@ -371,6 +375,23 @@ func (m *Maroto) getRowsHeight(rows ...core.Row) float64 {
 	}
 
 	return height
+}
+
+func (m *Maroto) collectRepeatRows() []core.Row {
+	var out []core.Row
+	for _, r := range m.rows {
+		if r.IsRepeatOnPageBreak() {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func (m *Maroto) addRepeatRows(rows []core.Row) {
+	for _, r := range rows {
+		m.currentHeight += r.GetHeight(m.provider, &m.cell)
+		m.rows = append(m.rows, r)
+	}
 }
 
 func getConfig(configs ...*entity.Config) *entity.Config {
