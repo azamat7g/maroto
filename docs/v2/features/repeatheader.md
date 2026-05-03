@@ -56,9 +56,9 @@ func main() {
 
 	// Create header row that repeats on page breaks
 	headerRow := row.New(8).
-		Add(col.New(3).Add(text.NewCol("Item ID"))).
-		Add(col.New(6).Add(text.NewCol("Description"))).
-		Add(col.New(3).Add(text.NewCol("Amount"))).
+		Add(text.NewCol(3, "Item ID")).
+		Add(text.NewCol(6, "Description")).
+		Add(text.NewCol(3, "Amount")).
 		WithRepeatOnPageBreak()
 
 	m.AddRows(headerRow)
@@ -66,9 +66,9 @@ func main() {
 	// Add many data rows (will span multiple pages)
 	for i := 1; i <= 100; i++ {
 		m.AddRow(6,
-			col.New(3).Add(text.NewCol(fmt.Sprintf("ID-%d", i))),
-			col.New(6).Add(text.NewCol(fmt.Sprintf("Item %d", i))),
-			col.New(3).Add(text.NewCol(fmt.Sprintf("$%.2f", 10.50*float64(i)))),
+			text.NewCol(3, fmt.Sprintf("ID-%d", i)),
+			text.NewCol(6, fmt.Sprintf("Item %d", i)),
+			text.NewCol(3, fmt.Sprintf("$%.2f", 10.50*float64(i))),
 		)
 	}
 
@@ -127,84 +127,6 @@ func main() {
 }
 ```
 
-## Output Structure
-
-When a page break occurs, the new page structure is:
-
-```
-[Global Header (if registered)]
-    ↓
-[Repeat Rows (marked with WithRepeatOnPageBreak)]
-    ↓
-[Content that overflowed from previous page]
-    ↓
-[Remaining content]
-    ↓
-[Global Footer (if registered)]
-```
-
-## Performance Considerations
-
-- **Memory**: Repeat rows are stored in memory during page breaks (negligible for typical tables)
-- **CPU**: Row copying on page break is O(n) where n is the number of repeat rows (typically 1-5)
-- **Scaling**: Tested with 1000+ rows; no observable performance degradation
-
-## Combining with Other Features
-
-**With RegisterHeader:**
-```go
-// Global header on every page
-m.RegisterHeader(row.New(10).Add(col.New(12).Add(text.NewCol("Company Logo"))))
-
-// Table header repeats when table overflows
-tableHeader := row.New(8).Add(...).WithRepeatOnPageBreak()
-```
-
-**With Background Images:**
-```go
-cfg := config.NewBuilder().
-	WithBackgroundImage("logo.png", consts.Extension.Png).
-	Build()
-
-m := maroto.New(cfg)
-
-// Repeat header appears over background
-headerRow := row.New(8).Add(...).WithRepeatOnPageBreak()
-```
-
-## Common Patterns
-
-### Single Repeat Header
-```go
-header := row.New(8).Add(...).WithRepeatOnPageBreak()
-m.AddRows(header)
-m.AddRows(dataRows...)
-```
-
-### Multiple Repeat Headers (Section Headers)
-```go
-headerA := row.New(8).Add(...).WithRepeatOnPageBreak()
-headerB := row.New(8).Add(...).WithRepeatOnPageBreak()
-
-m.AddRows(headerA)
-m.AddRows(dataRowsA...)
-m.AddRows(headerB)
-m.AddRows(dataRowsB...)
-```
-
-### Styled Repeat Headers
-```go
-headerStyle := &props.Cell{
-	BackgroundColor: &props.Color{Red: 200, Green: 200, Blue: 200},
-	BorderType:      border.Full,
-	BorderThickness: 0.5,
-}
-
-header := row.New(8).
-	Add(col.New(6).Add(text.NewCol("Column"))).
-	WithStyle(headerStyle).
-	WithRepeatOnPageBreak()
-```
 
 ## Related Features
 
