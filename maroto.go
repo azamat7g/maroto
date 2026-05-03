@@ -229,7 +229,11 @@ func (m *Maroto) addRow(r core.Row) {
 
 	m.addHeader()
 
-	m.addRepeatRows(repeatRows)
+	repeatRowsHeight := m.getRowsHeight(repeatRows...)
+	// Only inject repeat rows when they can coexist with the overflowing row.
+	if m.currentHeight+repeatRowsHeight+rowHeight <= maxHeight-m.footerHeight {
+		m.addRepeatRows(repeatRows)
+	}
 
 	// Re-check: repeat rows + header may have consumed enough space that r still doesn't fit.
 	if m.currentHeight+rowHeight > maxHeight-m.footerHeight {
