@@ -56,9 +56,9 @@ func main() {
 
 	// Create header row that repeats on page breaks
 	headerRow := row.New(8).
-		Add(col.New(3).Add(text.NewCol("Item ID"))).
-		Add(col.New(6).Add(text.NewCol("Description"))).
-		Add(col.New(3).Add(text.NewCol("Amount"))).
+		Add(text.NewCol(3, "Item ID")).
+		Add(text.NewCol(6, "Description")).
+		Add(text.NewCol(3, "Amount")).
 		WithRepeatOnPageBreak()
 
 	m.AddRows(headerRow)
@@ -66,9 +66,9 @@ func main() {
 	// Add many data rows (will span multiple pages)
 	for i := 1; i <= 100; i++ {
 		m.AddRow(6,
-			col.New(3).Add(text.NewCol(fmt.Sprintf("ID-%d", i))),
-			col.New(6).Add(text.NewCol(fmt.Sprintf("Item %d", i))),
-			col.New(3).Add(text.NewCol(fmt.Sprintf("$%.2f", 10.50*float64(i)))),
+			text.NewCol(3, fmt.Sprintf("ID-%d", i)),
+			text.NewCol(6, fmt.Sprintf("Item %d", i)),
+			text.NewCol(3, fmt.Sprintf("$%.2f", 10.50*float64(i))),
 		)
 	}
 
