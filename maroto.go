@@ -231,6 +231,13 @@ func (m *Maroto) addRow(r core.Row) {
 
 	m.addRepeatRows(repeatRows)
 
+	// Re-check: repeat rows + header may have consumed enough space that r still doesn't fit.
+	if m.currentHeight+rowHeight > maxHeight-m.footerHeight {
+		// Force one more page break; skip re-collecting repeat rows to avoid accumulation.
+		m.fillPageToAddNew()
+		m.addHeader()
+	}
+
 	// AddRows row on the new page
 	m.currentHeight += rowHeight
 	m.rows = append(m.rows, r)
@@ -378,9 +385,14 @@ func (m *Maroto) getRowsHeight(rows ...core.Row) float64 {
 }
 
 func (m *Maroto) collectRepeatRows() []core.Row {
+	headerSet := make(map[core.Row]bool)
+	for _, headerRow := range m.header {
+		headerSet[headerRow] = true
+	}
+
 	var out []core.Row
 	for _, r := range m.rows {
-		if r.IsRepeatOnPageBreak() {
+		if r.IsRepeatOnPageBreak() && !headerSet[r] {
 			out = append(out, r)
 		}
 	}
