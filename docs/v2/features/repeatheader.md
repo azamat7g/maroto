@@ -127,10 +127,6 @@ func main() {
 }
 ```
 
-## Output Structure
-
-When a page break occurs, the new page structure is:
-
 
 ## Related Features
 
